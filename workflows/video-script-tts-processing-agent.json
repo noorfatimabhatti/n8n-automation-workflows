@@ -1,0 +1,564 @@
+{
+  "name": "Video Script TTS Processing Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "<FILE_ID>",
+          "mode": "list",
+          "cachedResultName": "<FILE_NAME>",
+          "cachedResultUrl": "<FILE_URL>"
+        },
+        "options": {}
+      },
+      "id": "0b2cc849-2d8f-43ed-b8b4-7f1be79b64fe",
+      "name": "Download Script",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1888,
+        -16
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.data }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1440,
+        -16
+      ],
+      "id": "e90e0379-e27b-4ce0-90fc-a2fa79d45397",
+      "name": "Generate audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2112,
+        80
+      ],
+      "id": "7d3c53a4-7746-4170-826c-89cee901a627",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        -16
+      ],
+      "id": "8dabaf6a-50c5-4bd5-8791-498177679873",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "name": "audio",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<DRIVE_ID>"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<FOLDER_ID>",
+          "cachedResultName": "<FOLDER_NAME>"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1216,
+        -16
+      ],
+      "id": "bc3e3ec1-136b-446e-8a5d-4c18312cc2b6",
+      "name": "Upload Audio to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "<FILE_ID>",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -992,
+        -16
+      ],
+      "id": "16708c81-2eb8-418e-910f-06dcf3ccf83b",
+      "name": "Make Audio Public",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9c5a7e3-d8ce-4a95-8653-508746e4ebdb",
+              "name": "audio_url",
+              "value": "=<GOOGLE_DRIVE_URL> $('Upload Audio to Drive').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -768,
+        -16
+      ],
+      "id": "b40cf079-e0fe-4fb2-b030-8d9f363cd3bd",
+      "name": "Build Audio URL"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "<FILE_ID>",
+          "mode": "list",
+          "cachedResultName": "<FILE_NAME>",
+          "cachedResultUrl": "<FILE_URL>"
+        },
+        "options": {}
+      },
+      "id": "cb529f45-fff8-4615-88ee-e2daa0a2c10d",
+      "name": "Download Product Video (Google Drive)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1440,
+        176
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "video",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<DRIVE_ID>"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<FOLDER_ID>",
+          "cachedResultName": "<FOLDER_NAME>"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1216,
+        176
+      ],
+      "id": "6fcd263f-e54f-4247-82a1-d19b7c8644d1",
+      "name": "Upload Video to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "<FILE_ID>",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -992,
+        176
+      ],
+      "id": "635d9d91-fac8-48a7-acba-494caa77dae8",
+      "name": "Make Video Public",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9c5a7e3-d8ce-4a95-8653-508746e4ebdb",
+              "name": "video_url",
+              "value": "=<GOOGLE_DRIVE_URL> $('Upload Video to Drive').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -768,
+        176
+      ],
+      "id": "46c46ea2-8660-4b7e-a04e-2796d0b192a9",
+      "name": "Build Video URL"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -544,
+        80
+      ],
+      "id": "20ffc19b-a316-4b6d-b771-a31df411eee8",
+      "name": "Combine Audio & Video URLs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prod.0codekit.com/operator/merge-video-audio",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "auth",
+              "value": "4fqW_uh6m0vxfGG1JNItk28Y9_5uA3p2V1ol9Hv3Dxw"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "audio",
+              "value": "={{ $json.audio_url }}"
+            },
+            {
+              "name": "video",
+              "value": "={{ $json.video_url }}"
+            },
+            {
+              "name": "fileName",
+              "value": "<FILE_ID>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        80
+      ],
+      "id": "484e4a7d-4fbe-4cc6-9190-7455cd119907",
+      "name": "Send Merge Request (0CodeKit API)"
+    },
+    {
+      "parameters": {
+        "url": "= {{ $json.outputUrl }}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "my-final-video.mp4"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        80
+      ],
+      "id": "66f0b67d-091d-40f1-aa85-7233c5b84966",
+      "name": "Download Merged Video"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "my-final-video.mp4",
+        "name": "my-final-video",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<DRIVE_ID>"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<FOLDER_ID>",
+          "cachedResultName": "<FOLDER_NAME>"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        128,
+        80
+      ],
+      "id": "6939d858-ff4e-49ce-bc42-3d5a45dddddd",
+      "name": "Upload Final Video to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Download Script": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download Script",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Product Video (Google Drive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio to Drive": {
+      "main": [
+        [
+          {
+            "node": "Make Audio Public",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Audio Public": {
+      "main": [
+        [
+          {
+            "node": "Build Audio URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audio URL": {
+      "main": [
+        [
+          {
+            "node": "Combine Audio & Video URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Product Video (Google Drive)": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to Drive": {
+      "main": [
+        [
+          {
+            "node": "Make Video Public",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Video Public": {
+      "main": [
+        [
+          {
+            "node": "Build Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Video URL": {
+      "main": [
+        [
+          {
+            "node": "Combine Audio & Video URLs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Audio & Video URLs": {
+      "main": [
+        [
+          {
+            "node": "Send Merge Request (0CodeKit API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Merge Request (0CodeKit API)": {
+      "main": [
+        [
+          {
+            "node": "Download Merged Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Merged Video": {
+      "main": [
+        [
+          {
+            "node": "Upload Final Video to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

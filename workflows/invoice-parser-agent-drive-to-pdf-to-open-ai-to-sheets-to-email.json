@@ -1,0 +1,505 @@
+{
+  "name": "Invoice Parser Agent (Drive -> PDF -> OpenAI -> Sheets -> Email)",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "a206b7be-5f72-4e65-bfee-d57c92e17b1e",
+              "leftValue": ".pdf",
+              "rightValue": "application/pdf",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dc895c5e-0369-428d-bb0d-4e9dcf1105e4",
+      "name": "IF Is PDF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        152
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "<FILE_ID>",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "c0f10e2d-0d5e-4e55-b9a3-07a55f8f29a5",
+      "name": "Drive Download",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        144,
+        152
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input now includes both: text from Extract node AND meta from Drive trigger\nconst item = items[0];\n\n// Extract text from common keys produced by the PDF node\nlet text = item.json?.text || item.json?.data || item.json?.content || '';\nif (Array.isArray(text)) text = text.join('\\n');\n\n// Defensive binary fallback (rare)\nif (!text && item.binary?.data?.data) {\n  text = Buffer.from(item.binary.data.data, item.binary.data.encoding || 'base64').toString('utf8');\n}\n\n// Metadata is present directly on the merged item from the Drive trigger\nconst source_file_id = item.json.id || null;\nconst source_file_name = item.json.name || item.json.fileName || null;\nlet source_file_url = item.json.webViewLink || null;\n\n// Synthesize a link if only id is present\nif (!source_file_url && source_file_id) {\n  source_file_url = `$('Drive Download').first().json.webViewLink`;\n}\n\nif (!text || !text.trim()) {\n  throw new Error(`Empty text extracted from PDF. File: ${source_file_name || 'Unknown'}`);\n}\n\nreturn [\n  {\n    json: {\n      extracted_text: text,\n      source_file_id,\n      source_file_name,\n      source_file_url,\n    },\n  },\n];\n"
+      },
+      "id": "7a249cd4-072e-42e1-9bd0-c59e4230e16e",
+      "name": "Ensure Text & Source Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Get the raw OpenAI text from multiple possible locations (incl. $json.output)\nlet raw =\n  items[0]?.json?.output ??\n  items[0]?.json?.text ??\n  items[0]?.json?.content ??\n  items[0]?.json?.response ??\n  items[0]?.json?.choices?.[0]?.message?.content ??\n  (typeof items[0]?.json === 'string' ? items[0].json : null);\n\nif (!raw) {\n  throw new Error('Missing OpenAI response');\n}\n\n// If the node upstream already returned an object, accept it\nif (typeof raw === 'object') {\n  raw = JSON.stringify(raw);\n}\n\n// 2) Clean up common wrappers like ```json ... ``` or leading \"json\\n\"\nfunction cleanRaw(s) {\n  let t = String(s).trim();\n  // remove code fences\n  t = t.replace(/```json/gi, '```').replace(/```/g, '').trim();\n  // drop a leading \"json\" language hint on its own line\n  t = t.replace(/^json\\s*/i, '').trim();\n  return t;\n}\nraw = cleanRaw(raw);\n\n// 3) Parse strictly; if it fails, salvage the first {...} block\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  const m = raw.match(/\\{[\\s\\S]*\\}/);\n  if (!m) throw new Error('OpenAI returned non-JSON');\n  parsed = JSON.parse(m[0]);\n}\n\n// 4) Normalize fields\nfunction isoOrNull(v){\n  if (v === null || v === undefined || v === '') return null;\n  const d = new Date(String(v).trim());\n  if (Number.isNaN(d.getTime())) return null;\n  return d.toISOString().slice(0,10);\n}\nfunction numOrNull(v){\n  if (v === null || v === undefined || v === '') return null;\n  const n = Number(String(v).replace(/,/g, ''));\n  return Number.isNaN(n) ? null : n;\n}\n\n// Coerce/trim basics\nparsed.invoice_number   = (parsed.invoice_number ?? '').toString().trim();\nparsed.vendor_name      = (parsed.vendor_name ?? '').toString().trim();\nparsed.invoice_date     = isoOrNull(parsed.invoice_date);\nparsed.due_date         = isoOrNull(parsed.due_date);\nparsed.total_amount     = numOrNull(parsed.total_amount);\nparsed.currency         = (parsed.currency ?? '').toString().trim().toUpperCase() || null;\nparsed.notes            = (parsed.notes === null || parsed.notes === undefined || String(parsed.notes).trim()==='') ? null : String(parsed.notes).trim();\nparsed.source_file_id   = (parsed.source_file_id ?? '').toString().trim();\nparsed.source_file_name = (parsed.source_file_name ?? '').toString().trim();\nparsed.source_file_url  = (parsed.source_file_url ?? '').toString().trim();\n\n// Normalize line items\nif (!Array.isArray(parsed.line_items)) parsed.line_items = [];\nparsed.line_items = parsed.line_items.map(li => {\n  const description = (li?.description ?? '').toString();\n  const qty         = numOrNull(li?.qty) ?? 0;\n  const unit_price  = numOrNull(li?.unit_price) ?? 0;\n  const line_total  = numOrNull(li?.line_total) ?? (qty * unit_price);\n  return { description, qty, unit_price, line_total };\n});\n\n// 5) Required fields\nconst required = [\n  'invoice_number',\n  'invoice_date',\n  'vendor',\n  'total_amount',\n  'currency',\n  'source_file_id',\n  'source_file_name',\n  'source_file_url',\n];\nfor (const k of required) {\n  if (parsed[k] === null || parsed[k] === undefined || parsed[k] === '') {\n    throw new Error(`Missing required field: ${k}`);\n  }\n}\n\nreturn [{ json: parsed }];\n"
+      },
+      "id": "aa581e76-d133-4d09-a34e-cd29526578c8",
+      "name": "Validate & Normalize JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        368,
+        152
+      ],
+      "id": "fc807358-bb0d-4a66-820d-b764ccb0bcf2",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        592,
+        80
+      ],
+      "id": "cca42e3e-fefb-4c5d-9b4f-7f4490a60fe6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an invoice parsing engine. Return only strict JSON—no prose, no explanations, no code fences, no leading language tags. The JSON must match the exact schema below, with keys in the same order. Dates must be ISO 8601 (YYYY-MM-DD). All numeric fields must be numbers (not strings). If a field is absent, use null. Infer currency from symbols (e.g., $, €, £) or common locale cues when possible. If line_total is missing per item, compute qty * unit_price.\n\nSchema (order required):\n{\n\"invoice_number\": string,\n\"invoice_date\": string, // ISO 8601 (YYYY-MM-DD)\n\"vendor\": string, // e.g., Acme Supplies Ltd.\n\"total_amount\": number, // e.g., 210.00\n\"currency\": string, // ISO 4217 (USD, EUR, GBP, etc.)\n\"due_date\": string|null, // ISO 8601 or null\n\"line_items\": [\n{ \"description\": string, \"qty\": number, \"unit_price\": number, \"line_total\": number }\n],\n\"notes\": string|null,\n\"source_file_id\": string,\n\"source_file_name\": string,\n\"source_file_url\": string\n}\n\nNormalization rules:\n\nConvert any date formats you find into ISO YYYY-MM-DD.\n\nStrip currency symbols and thousand separators from numeric fields; parse as numbers.\n\nIf currency is not explicitly stated, infer from symbols or context; otherwise return null.\n\nIf a section is present but empty (e.g., notes), set to null.\n\nline_items should be an array; if none found, return an empty array [].\n\nOutput rules:\n\nOutput must be a single JSON object following the schema and order above.\n\nDo not include extra keys.\n\nDo not include any text outside the JSON (no “json” label, no backticks).",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        80
+      ],
+      "id": "da9dd231-a2c4-443d-b587-ee5db768d25a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1112,
+        304
+      ],
+      "id": "9965aeb2-d457-412b-9c76-4552606cd9b8",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<DOCUMENT_ID>",
+          "mode": "list",
+          "cachedResultName": "<DOCUMENT_NAME>",
+          "cachedResultUrl": "<DOCUMENT_URL>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1709370982,
+          "mode": "list",
+          "cachedResultName": "sample_invoice_sheet",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_date": "={{ $json.invoice_date }}",
+            "invoice_number": "={{ $json.invoice_number }}",
+            "vendor": "={{ $json.vendor }}",
+            "total_amount": "={{ $json.total_amount }}",
+            "currency": "={{ $json.currency }}",
+            "due_date": "={{ $json.due_date }}",
+            "source_file_url": "<FILE_ID>",
+            "source_file_name": "<FILE_ID>",
+            "values": "={{ \n  ($json.line_items || [])\n    .map(li => `${li.description} | ${li.qty} × ${li.unit_price} = ${li.line_total}`)\n    .join('; ')\n}}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "invoice_date",
+              "displayName": "invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "vendor",
+              "displayName": "vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_amount",
+              "displayName": "total_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_file_name",
+              "displayName": "source_file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_file_url",
+              "displayName": "source_file_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "values",
+              "displayName": "values",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1616,
+        80
+      ],
+      "id": "e4f0d74d-9561-465e-a244-00596a527dd4",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "<EMAIL_ADDRESS>",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2064,
+        80
+      ],
+      "id": "d0bba21c-3710-4d12-a51c-e4852bd877cb",
+      "name": "Send a message",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst li = Array.isArray(data.line_items) ? data.line_items : [];\n\nconst liRows = li.length\n  ? li.map(x => `\n      <tr>\n        <td>${x.description ?? ''}</td>\n        <td align=\"right\">${x.qty ?? ''}</td>\n        <td align=\"right\">${x.unit_price ?? ''}</td>\n        <td align=\"right\">${x.line_total ?? ''}</td>\n      </tr>\n    `).join('')\n  : '';\n\nconst liTable = liRows\n  ? `<h3 style=\"margin:16px 0 8px;color:#444\">Line Items</h3>\n     <table cellpadding=\"8\" cellspacing=\"0\" width=\"100%\" \n            style=\"border-collapse:collapse;border:1px solid #ddd;font-size:14px\">\n       <thead style=\"background:#f5f5f5\">\n         <tr>\n           <th align=\"left\">Description</th>\n           <th align=\"right\">Qty</th>\n           <th align=\"right\">Unit Price</th>\n           <th align=\"right\">Total</th>\n         </tr>\n       </thead>\n       <tbody>${liRows}</tbody>\n     </table>`\n  : '';\n\nconst html = `\n  <div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;padding:20px;border:1px solid #eee;border-radius:6px;background:#fafafa\">\n    <h2 style=\"color:#2a2a2a;margin-top:0\">📑 New Invoice Received</h2>\n    <p style=\"margin:4px 0\"><strong>Date:</strong> ${data.invoice_date}</p>\n    <p style=\"margin:4px 0\"><strong>Vendor:</strong> ${data.vendor}</p>\n    <p style=\"margin:4px 0\"><strong>Invoice #:</strong> ${data.invoice_number}</p>\n    <p style=\"margin:4px 0\"><strong>Amount:</strong> <span style=\"color:#2e7d32;font-weight:bold\">${data.total_amount} ${data.currency}</span></p>\n    <p style=\"margin:4px 0\"><strong>Due Date:</strong> <span style=\"color:#d32f2f\">${data.due_date ?? '—'}</span></p>\n    <p style=\"margin:4px 0\"><strong>Source:</strong> <a href=\"${data.source_file_url}\" style=\"color:#1976d2\">${data.source_file_name}</a></p>\n    <p style=\"margin:4px 0\"><strong>Notes:</strong> ${data.notes ?? '—'}</p>\n    ${liTable}\n    <p style=\"margin-top:20px;font-size:12px;color:#777\">This email was sent automatically with n8n 🚀</p>\n  </div>\n`;\n\nreturn [{\n  subject: `📑 Invoice ${data.invoice_number} from ${data.vendor} — ${data.total_amount} ${data.currency}`,\n  html\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        80
+      ],
+      "id": "83a125f4-fe50-4d68-9520-def0ff9ce3bf",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1ibn4KbGxEldVp269vo4vnXCDVX_i0CMh",
+          "mode": "list",
+          "cachedResultName": "invoices",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        80
+      ],
+      "id": "15f7d070-e33c-47bc-b2dc-277147ec0efb",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "IF Is PDF": {
+      "main": [
+        [
+          {
+            "node": "Drive Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Download": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Ensure Text & Source Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Text & Source Meta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalize JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalize JSON": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "IF Is PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

@@ -1,0 +1,289 @@
+{
+  "name": "Gmail Labeling AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "0a41be08-9540-4bd9-b686-2a14cb81035d",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.snippet }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Learning",
+              "description": " Emails related to online courses, educational platforms, or academic content."
+            },
+            {
+              "category": "Offers",
+              "description": " Promotional emails, discounts, sales, and marketing messages."
+            },
+            {
+              "category": "Payment",
+              "description": "Emails regarding transactions, receipts, invoices, and payment confirmations."
+            },
+            {
+              "category": "Personal",
+              "description": "Messages from friends, family, or personal contacts not related to work or promotions"
+            },
+            {
+              "category": "Others",
+              "description": "Other emails that does not have description."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "d2934c0c-f439-4d06-a671-3ba3b9a058fc",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        400
+      ],
+      "id": "c32ade73-239b-4189-85ab-e2af6cb79fe2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_8104637006186867641"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        -240
+      ],
+      "id": "fe8b1255-289f-4761-8a84-3beac547ec75",
+      "name": "Learning",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_215810644910876024"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        -80
+      ],
+      "id": "dc5ae497-e30a-450e-a867-070f0db1e309",
+      "name": "Offers",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_2022657662800208466"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        96
+      ],
+      "id": "81a28d29-8832-4d1b-8694-3d4ca6701f99",
+      "name": "Payment",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_7489556955096032242"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        256
+      ],
+      "id": "ef11867e-3759-401f-b3b0-51a234eba3b0",
+      "name": "Personal",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_7941931488675100667"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        432
+      ],
+      "id": "366a4fc0-9396-49d8-9a49-d30f6527d302",
+      "name": "Others",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Learning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Offers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Personal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Others",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

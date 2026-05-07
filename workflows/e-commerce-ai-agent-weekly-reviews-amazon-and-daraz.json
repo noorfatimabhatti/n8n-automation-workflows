@@ -1,0 +1,319 @@
+{
+  "name": "E-commerce AI Agent - Weekly Reviews (Amazon & Daraz)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "08c94867-db84-43fa-aa15-79118d6f0d4e",
+      "name": "Schedule (Mon 09:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2016,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/QlEoAjrdHxJyQbWxk/items?token=<SECRET>",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 360000
+        }
+      },
+      "id": "17051ffb-0284-4e8f-af46-8e33ac859da2",
+      "name": "Amazon (Apify): Run Actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1792,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst normalizedItems = items.map((item) => {\n  const r = item.json;\n  return {\n    text: r.description || r.reviewText || r.content || r.body,\n    title: r.title,\n    rating: Number(r.score || r.rating || r.stars || r.ratingValue || 0),\n    date: r.dateAndLocation || r.reviewDate || r.createdAt,\n    productName: \"\",\n    productAsin: r.productAsin || r.asin || \"\",\n    productUrl: r.productLink || r.url || \"\",\n  };\n});\n\nreturn normalizedItems;\n"
+      },
+      "id": "779a3e75-1064-48b6-8c58-341d7193c439",
+      "name": "Normalize Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "URL/HTML to PDF",
+        "convertType": "htmlToPDF",
+        "html": "={{ $json.report_html }}",
+        "advancedOptions": {}
+      },
+      "id": "7e7a09bd-02ff-4bd0-a9fe-e2e9c8b795ad",
+      "name": "PDFco Api",
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        128
+      ],
+      "credentials": {
+        "pdfcoApi": {
+          "id": "<PDFCOAPI_CREDENTIAL_ID>",
+          "name": "<PDFCOAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "bd5e8b5b-f5d4-4795-a8b5-5e2a3a41e1cb",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "<EMAIL_ADDRESS>",
+        "subject": "Weekly Reviews ",
+        "emailType": "text",
+        "message": "=",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "630df158-38af-49ed-8b02-2a5bd9e405d6",
+      "name": "Send a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        128
+      ],
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a colorful Sentiment Analysis report from many review items\n\nfunction parseLLM(raw) {\n  if (!raw) return { label: \"Neutral\", score: 0 };\n  try { const o = typeof raw === \"string\" ? JSON.parse(raw) : raw; \n        return { label: o.label || \"Neutral\", score: Number(o.score)||0 }; }\n  catch { return { label: \"Neutral\", score: 0 }; }\n}\nfunction normLabel(v){\n  const s = String(v||\"\").toLowerCase();\n  if (s.includes(\"pos\")) return \"Positive\";\n  if (s.includes(\"neg\")) return \"Negative\";\n  return \"Neutral\";\n}\nfunction cleanText(s){ return String(s||\"\").replace(/\\s+/g,\" \").trim(); }\nfunction bullets(arr, k){\n  return arr.filter(r=>r.text).slice(0,k)\n            .map(r=>cleanText(r.text).slice(0,220));\n}\n\n// --- collect reviews from incoming items\nconst reviews = items.map(it => {\n  const j = it.json || {};\n  const llmRaw = j.llm?.message?.content ?? j.message?.content ?? null;\n  const { label, score } = llmRaw ? parseLLM(llmRaw)\n                                  : { label: j.category ?? j.sentimentAnalysis?.category ?? \"Neutral\", score: 0 };\n  return {\n    text: cleanText(j.text),\n    label: normLabel(label),\n    score: Number(j.score ?? score) || 0,\n    rating: (typeof j.rating === \"number\") ? j.rating : undefined,\n    productName: cleanText(j.productName),\n    productUrl: cleanText(j.productUrl)\n  };\n}).filter(r => r.text);\n\n// --- aggregate\nconst N = reviews.length;\nconst counts = { Positive:0, Neutral:0, Negative:0 };\nlet sumScore = 0, sumRating = 0, nRating = 0;\nfor (const r of reviews){\n  counts[r.label] = (counts[r.label]||0)+1;\n  sumScore += r.score || 0;\n  if (typeof r.rating === \"number\"){ sumRating += r.rating; nRating++; }\n}\nconst pct = n => N ? ((n/N)*100).toFixed(0)+\"%\" : \"0%\";\nconst avgScore  = N ? (sumScore / N) : 0;\nconst avgRating = nRating ? (sumRating / nRating) : null;\n\n// pick product info\nconst firstWithInfo = reviews.find(r=>r.productName || r.productUrl) || {};\nconst productName = firstWithInfo.productName || \"\";\nconst productUrl  = firstWithInfo.productUrl  || \"\";\n\n// bullets\nconst posBul = bullets(reviews.filter(r=>r.label===\"Positive\"), 8);\nconst neuBul = bullets(reviews.filter(r=>r.label===\"Neutral\"), 4);\nconst negBul = bullets(reviews.filter(r=>r.label===\"Negative\"), 4);\n\n// --- plain text\nconst lines = [];\nlines.push(\"Sentiment Analysis Report\");\nif (productName) lines.push(`Product: ${productName}`);\nif (productUrl)   lines.push(`URL: ${productUrl}`);\nlines.push(`Out of ${N} reviews: ${counts.Positive} Positive, ${counts.Neutral} Neutral, ${counts.Negative} Negative.`);\nlines.push(`Average score: ${avgScore.toFixed(2)}  |  Average rating: ${avgRating!==null?avgRating.toFixed(2):\"N/A\"}`);\nconst report_text = lines.join(\"\\n\");\n\n// --- HTML (styled, PDF-friendly)\nconst esc = s=>s.replace(/&/g,\"&amp;\").replace(/</g,\"&lt;\").replace(/>/g,\"&gt;\");\nfunction section(title, color, arr){\n  const lis = arr.length ? arr.map(t=>`<li>${esc(t)}</li>`).join(\"\") : `<li>(none)</li>`;\n  return `\n    <h2 style=\"color:${color};margin:18px 0 6px 0;\">${title}</h2>\n    <ul style=\"margin:6px 0 14px 24px;\">${lis}</ul>`;\n}\nconst html = `\n<!doctype html><html><head><meta charset=\"utf-8\">\n<title>Sentiment Analysis Report</title>\n<style>\n  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 28px; line-height: 1.45; }\n  h1 { color:#15803d; margin:0 0 10px 0; font-size: 22px; }\n  .muted{ color:#6b7280; font-size:12px; margin-top:24px; }\n  .summary{ margin:8px 0 14px 0; }\n  .k { font-weight:600; }\n</style>\n</head><body>\n  <h1>📊 Sentiment Analysis Report</h1>\n  ${productName ? `<div class=\"summary\"><span class=\"k\">Product:</span> ${esc(productName)}</div>` : \"\"}\n  ${productUrl ? `<div class=\"summary\"><span class=\"k\">URL:</span> ${esc(productUrl)}</div>` : \"\"}\n  <div class=\"summary\">Out of <b>${N}</b> reviews: <b>${counts.Positive}</b> Positive, <b>${counts.Neutral}</b> Neutral, <b>${counts.Negative}</b> Negative.</div>\n  <div class=\"summary\">Average score: <b>${avgScore.toFixed(2)}</b> &nbsp;•&nbsp; Average rating: <b>${avgRating!==null?avgRating.toFixed(2):\"N/A\"}</b></div>\n\n  ${section(`👍 Positive Reviews (${counts.Positive})`,\"#16a34a\", posBul)}\n  ${section(`🙂 Neutral Reviews (${counts.Neutral})`,\"#d97706\", neuBul)}\n  ${section(`👎 Negative Reviews (${counts.Negative})`,\"#dc2626\", negBul)}\n\n  <div class=\"muted\">Generated automatically via n8n 🚀</div>\n</body></html>`.trim();\n\nreturn [{ json: { report_html: html, report_text, counts, productName, productUrl } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        128
+      ],
+      "id": "73a983c5-b8a3-4a0b-ac13-c3db84341414",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "inputText": "=You are a sentiment classifier.  \nClassify the following product review as **Positive**, **Neutral**, or **Negative**.  \nAlso assign a sentiment score between -1 and 1 (-1 = very negative, 0 = neutral, +1 = very positive).  \n\nReturn the result ONLY as strict JSON (no explanation, no extra text):  \n{\"label\": \"Positive|Neutral|Negative\", \"score\": <number between -1 and 1>}  \n\nReview text:  \n{{$json.text}}\n",
+        "options": {
+          "includeDetailedResults": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+      "typeVersion": 1.1,
+      "position": [
+        -1344,
+        128
+      ],
+      "id": "d7fdd219-5c88-4030-b70b-4884ebbb9186",
+      "name": "Sentiment Analysis"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1272,
+        384
+      ],
+      "id": "14f35a9e-dd83-4ec5-8975-1ff46b0decae",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -992,
+        112
+      ],
+      "id": "680e4c05-b479-4f61-a6af-2ef3d8ae6aac",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule (Mon 09:00)": {
+      "main": [
+        [
+          {
+            "node": "Amazon (Apify): Run Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Amazon (Apify): Run Actor": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Reviews": {
+      "main": [
+        [
+          {
+            "node": "Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFco Api": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sentiment Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

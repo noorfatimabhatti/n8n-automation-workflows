@@ -1,0 +1,240 @@
+{
+  "name": "Slack Agent Responder",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Slack AI assistant in an n8n workflow.\n{{ $json.text }}\nFormatting Rules:\n\t•\tAlways use single asterisks for bold (text).\n\t•\tBold only the date in responses. Never bold the whole sentence or unrelated words.\n\t•\tExample: Today is Thursday, August 14, 2025. ✅\n\t•\tDo not use user mentions (e.g., <@USERID>).\n\nCapabilities & Tools:\n\t•\tserp tool → For real-time or external web info.\n\t•\tWikipedia → For general factual knowledge.\n\t•\tCalculator → For any arithmetic or quantitative reasoning.\n\t•\tOpenAI Chat Model → For reasoning and natural language replies.\n\nOther Rules:\n\t•\tKeep answers under 3 lines unless the user requests more detail.\n\t•\tUse Slack-friendly formatting (bold, italic, bullet points).\n\t•\tDouble-check all facts before sending.\n\t•\tIf citing a source, mention it briefly (e.g., “According to Wikipedia…”).\n\nGoal: Provide accurate, concise, well-formatted Slack messages where only the date is bolded by default.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        336
+      ],
+      "id": "f68dd0a4-aaee-48a3-903f-477552f81be5",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        560
+      ],
+      "id": "9e4ebe24-2082-43c4-9e45-e194a998aa82",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        144,
+        560
+      ],
+      "id": "30e83940-773b-4b98-881a-ebe2dcee07ca",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        272,
+        560
+      ],
+      "id": "3eea77d4-eb8e-4e11-b333-bc19f81c8d07",
+      "name": "Wikipedia"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "any_event",
+          "app_mention",
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "<CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "<CHANNEL_NAME>"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        336
+      ],
+      "id": "f437b92d-5121-4635-a48f-a5fba8906711",
+      "name": "Slack Trigger",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "slackApi": {
+          "id": "<SLACKAPI_CREDENTIAL_ID>",
+          "name": "<SLACKAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "<CHANNEL_NAME>"
+        },
+        "text": "={{ $json.output }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        608,
+        336
+      ],
+      "id": "f04c846b-0ec5-4bdf-806c-6771e059d289",
+      "name": "Send a message",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "slackApi": {
+          "id": "<SLACKAPI_CREDENTIAL_ID>",
+          "name": "<SLACKAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        400,
+        560
+      ],
+      "id": "786011e2-0fb2-4493-aeec-5c51f9a5c2e8",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wikipedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": [
+    {
+      "name": "slack",
+      "id": "w1arEDXD0KswC4Er",
+      "createdAt": "2025-08-14T03:19:35.667Z",
+      "updatedAt": "2025-08-14T03:19:35.667Z"
+    },
+    {
+      "name": "agent",
+      "id": "oIa7tHnkhkUg6XYA",
+      "createdAt": "2025-08-14T03:19:35.624Z",
+      "updatedAt": "2025-08-14T03:19:35.624Z"
+    }
+  ]
+}

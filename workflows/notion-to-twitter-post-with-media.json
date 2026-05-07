@@ -1,0 +1,349 @@
+{
+  "name": "Notion -> Twitter (Post with Media)",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "<DATABASE_ID>",
+          "mode": "list",
+          "cachedResultName": "<DATABASE_NAME>",
+          "cachedResultUrl": "<DATABASE_URL>"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "name": "Notion (Search)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        96
+      ],
+      "id": "bba0dfe7-ac6e-4738-a4c4-82cade094d76",
+      "credentials": {
+        "notionApi": {
+          "id": "<NOTIONAPI_CREDENTIAL_ID>",
+          "name": "<NOTIONAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "tweetText",
+              "value": "={{ $json.property_tweet }}"
+            },
+            {
+              "name": "imageUrl",
+              "value": "={{ $json.property_image }}"
+            },
+            {
+              "name": "pageId",
+              "value": "<PAGE_ID>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set (Assemble Tweet)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        96
+      ],
+      "id": "a7980ff4-4e31-4d38-8202-9ab5a5b76b67"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "0e355cdb-e147-4e7a-bd0b-a5036ef0a2e6",
+              "leftValue": "={{ $json.imageUrl[0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF (Has Image?)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        96
+      ],
+      "id": "ab8975e1-370b-4bd1-9227-380a46ee3eed"
+    },
+    {
+      "parameters": {
+        "text": "={{ $('HTTP Request').item.json.tweetText }}",
+        "additionalFields": {
+          "attachments": "={{ $json.media_id_string }}"
+        }
+      },
+      "name": "Twitter (Post with Media)",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ],
+      "id": "a4056402-5c9d-40db-b30b-28f19730f378",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "<TWITTEROAUTH2API_CREDENTIAL_ID>",
+          "name": "<TWITTEROAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{$json.tweetText}}",
+        "additionalFields": {}
+      },
+      "name": "Twitter (Post Text Only)",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        320,
+        192
+      ],
+      "id": "7e63e112-8373-4c19-a074-4c10861455c4",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "<TWITTEROAUTH2API_CREDENTIAL_ID>",
+          "name": "<TWITTEROAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "<PAGE_ID>",
+          "mode": "id"
+        },
+        "simple": "=",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Posted|checkbox",
+              "checkboxValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Notion (Update Page)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        544,
+        96
+      ],
+      "id": "ca2e5f3f-4f94-49bb-a93c-86bb2ecbf0bd",
+      "credentials": {
+        "notionApi": {
+          "id": "<NOTIONAPI_CREDENTIAL_ID>",
+          "name": "<NOTIONAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        96
+      ],
+      "id": "3c495b10-ab9b-4510-bfd3-967daa3f24c7",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "45f1fc23-d7f9-4ce3-a918-f20c536aab8d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://upload.twitter.com/1.1/media/upload.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth1Api",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "media",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        96,
+        0
+      ],
+      "id": "31ed3e20-2c62-4a0b-a58b-8f935d1618fe",
+      "name": "HTTP Request1",
+      "credentials": {
+        "oAuth1Api": {
+          "id": "<OAUTH1API_CREDENTIAL_ID>",
+          "name": "<OAUTH1API_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Notion (Search)": {
+      "main": [
+        [
+          {
+            "node": "Set (Assemble Tweet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set (Assemble Tweet)": {
+      "main": [
+        [
+          {
+            "node": "IF (Has Image?)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Has Image?)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twitter (Post Text Only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twitter (Post with Media)": {
+      "main": [
+        [
+          {
+            "node": "Notion (Update Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twitter (Post Text Only)": {
+      "main": [
+        [
+          {
+            "node": "Notion (Update Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion (Search)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Twitter (Post with Media)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

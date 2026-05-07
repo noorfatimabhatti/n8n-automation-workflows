@@ -1,0 +1,427 @@
+{
+  "name": "Brand Mentions Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "64f14233-e77c-4d20-a96f-0a8a61b22e12",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1104,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "subreddit": "all",
+        "keyword": "={{ $json.brandName }}",
+        "limit": 25,
+        "additionalFields": {}
+      },
+      "id": "1b87f01d-1095-47ee-8eea-0266a5bef67c",
+      "name": "Reddit Search",
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        320
+      ],
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "<REDDITOAUTH2API_CREDENTIAL_ID>",
+          "name": "<REDDITOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "filter-condition",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c6595bf0-f1e9-4da6-ab63-0171bf69ce8f",
+      "name": "Filter High Priority",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        16,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "<DOCUMENT_ID>",
+          "mode": "list",
+          "cachedResultName": "<DOCUMENT_NAME>",
+          "cachedResultUrl": "<DOCUMENT_URL>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{$json.processed_at}}",
+            "Source": "={{$json.source}}",
+            "Priority": "={{$json.priority}}",
+            "Score": "={{$json.ups || $json.score || ''}}",
+            "URL": "={{$json.url}}",
+            "Title": "={{$json.title}}"
+          },
+          "matchingColumns": [
+            "Timestamp"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b2522335-05f1-46c1-a18a-9b74eda90ff6",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        16,
+        608
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "<CHANNEL_NAME>"
+        },
+        "text": "=🚨 *Brand Mention Alert*\n\n*Title:* {{ $json.title }}\n*Source:* {{ $json.source }}\n*Priority:* {{ $json.priority === 3 ? 'HIGH 🔴' : 'MEDIUM 🟡' }}\n*Sentiment:* {{ $json.sentiment }}\n*URL:* {{ $json.url }}",
+        "otherOptions": {}
+      },
+      "id": "063f29bd-ccbf-4797-9478-76d06ecf989f",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        416
+      ],
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "<SLACKOAUTH2API_CREDENTIAL_ID>",
+          "name": "<SLACKOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c35d1460-6bcf-480a-8d4c-1b0ee565ee5a",
+              "name": "brandName",
+              "value": "Nike",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b1b699a-ca9f-4bf0-8e66-46513b58e2bb",
+      "name": "Set Brand Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        -880,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "google_trends",
+        "q": "={{ $json.brandName }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        704
+      ],
+      "id": "bb6092e3-cc64-4ec2-bda8-79b0731439a0",
+      "name": "Google_trends search",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "google_news",
+        "q": "={{ $json.brandName }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        512
+      ],
+      "id": "ba8ecf5e-b080-4149-ab47-d25202ef887f",
+      "name": "Google_news search",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -432,
+        496
+      ],
+      "id": "ae2f2e22-afb2-4b51-be47-a8c5891b6516",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Remove Duplicates & Set Priority (Code node) =====\n\n// ---- Helper: normalize text for matching/dedup ----\nfunction normalize(str = '') {\n  return String(str)\n    .normalize('NFKD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/https?:\\/\\/\\S+/g, '')\n    .replace(/[^\\p{L}\\p{N}\\s]/gu, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\n// ---- Keyword sets ----\nconst HIGH_NEG = [\n  'crisis','scandal','lawsuit','ban','recall','boycott','probe','investigation',\n  'fraud','fine','leak','data breach','defect','exploit','backlash','harassment',\n  'sexual','racist','injury','death','explode','fire','controversy'\n];\nconst MEDIUM_POS = [\n  'launch','release','announce','announcement','partnership','collaboration',\n  'award','milestone','record','funding','expansion','acquisition','ipo',\n  'earnings','beats estimates','win','wins','drop'\n];\n\n// contains-any\nfunction hasAny(haystack, list) {\n  const h = ' ' + normalize(haystack) + ' ';\n  return list.some(k => h.includes(' ' + normalize(k) + ' '));\n}\n\nconst items = $input.all();\nconst seen = new Set();\nconst out = [];\n\nfor (const item of items) {\n  const j = item.json || {};\n\n  // Titles/URLs from mixed sources (Reddit, SerpAPI news, etc.)\n  const title = j.title || j.headline || j.name || '';\n  const url   = j.url || j.link || j.permalink || '';\n  const description =\n    j.description || j.selftext || j.summary || j.snippet || j.text || '';\n\n  const source =\n    j.source || j.subreddit || j.domain || j.news_source || 'unknown';\n\n  // --- Dedupe by title+url\n  const key = (title || '').toLowerCase() + (url || '');\n  if (!title || seen.has(key)) continue;\n  seen.add(key);\n\n  // --- Aggregate content\n  const contentRaw = `${title}\\n${description}`;\n  const contentNorm = normalize(contentRaw);\n\n  // --- Sentiment (simple heuristic)\n  const POS = ['great','excellent','amazing','love','awesome','good','improve','growth','beat'];\n  const NEG = ['bad','terrible','hate','worst','fail','issue','problem','bug','drop in sales'];\n  const sentiment =\n    hasAny(contentNorm, POS) && !hasAny(contentNorm, NEG) ? 'positive' :\n    hasAny(contentNorm, NEG) && !hasAny(contentNorm, POS) ? 'negative' : 'neutral';\n\n  // --- Priority rules\n  let priority = 1;\n\n  // A) strong negative => HIGH\n  if (hasAny(contentNorm, HIGH_NEG)) priority = 3;\n\n  // B) announcements/news => MEDIUM\n  if (hasAny(contentNorm, MEDIUM_POS)) priority = Math.max(priority, 2);\n\n  // C) news source hint => MEDIUM\n  if (String(source).toLowerCase().includes('news')) {\n    priority = Math.max(priority, 2);\n  }\n\n  // D) Reddit engagement bumps\n  const ups = Number(j.ups ?? j.score ?? 0);\n  const comments = Number(j.num_comments ?? 0);\n  if (ups >= 200 || comments >= 100) priority = Math.max(priority, 3);\n  else if (ups >= 50 || comments >= 20) priority = Math.max(priority, 2);\n\n  // E) negative sentiment => at least MEDIUM\n  if (sentiment === 'negative') priority = Math.max(priority, 2);\n\n  // --- Emit item with added fields\n  out.push({\n    json: {\n      ...j,\n      source,\n      url,\n      priority,\n      sentiment,\n      processed_at: new Date().toISOString(),\n      normalized: contentNorm,\n      normalized_title: normalize(title),\n      normalized_description: normalize(description)\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "id": "a9c15e76-bc26-4a3e-b79d-89af51db74d1",
+      "name": "Remove Duplicates & Set Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        512
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Brand Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Brand Config": {
+      "main": [
+        [
+          {
+            "node": "Reddit Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google_news search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google_trends search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reddit Search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Priority": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_news search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google_trends search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates & Set Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates & Set Priority": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

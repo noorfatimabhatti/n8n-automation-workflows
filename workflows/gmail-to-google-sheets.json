@@ -1,0 +1,220 @@
+{
+  "name": "Gmail -> Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "78bd54fe-03bb-49bd-91e1-ab20ea60c86e",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -176
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "Date",
+              "value": "={{ $json[\"internalDate\"] ? new Date(Number($json[\"internalDate\"])).toISOString() : \"\" }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $json[\"From\"] || ($json[\"payload\"]?.headers?.find(h => h.name === 'From')?.value) || \"\" }}"
+            },
+            {
+              "name": "To",
+              "value": "={{ $json[\"To\"] || ($json[\"payload\"]?.headers?.find(h => h.name === 'To')?.value) || \"\" }}"
+            },
+            {
+              "name": "Subject",
+              "value": "={{ $json[\"Subject\"] || ($json[\"payload\"]?.headers?.find(h => h.name === 'Subject')?.value) || \"\" }}"
+            },
+            {
+              "name": "Snippet",
+              "value": "={{ $json[\"snippet\"] || \"\" }}"
+            },
+            {
+              "name": "Labels",
+              "value": "={{ Array.isArray($json.labels) ? $json.labels.map(l => l.name || l.id).join(', ') : '' }}"
+            },
+            {
+              "name": "MessageId",
+              "value": "={{ $json[\"id\"] || \"\" }}"
+            },
+            {
+              "name": "ThreadId",
+              "value": "={{ $json[\"threadId\"] || \"\" }}"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "HasAttachments"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "33412a90-803c-4849-811e-501b401c2fe9",
+      "name": "Pick Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const subject = item.json.Subject || \"\";\n  const snippet = item.json.Snippet || \"\";\n  const text = (subject + \" \" + snippet).toLowerCase();\n\n  let category = \"Others\";\n  if (/(payment|paid|invoice|bill|transaction|bank|refund)/i.test(text)) {\n    category = \"Payment\";\n  } else if (/(^hi |^hello | dear|family|friend|birthday|party|invitation)/i.test(text)) {\n    category = \"Personal\";\n  } else if (/(course|tutorial|lesson|exam|study|training|class)/i.test(text)) {\n    category = \"Learning\";\n  } else if (/(offer|sale|discount|deal|promotion|coupon)/i.test(text)) {\n    category = \"Offer\";\n  }\n\n  item.json.Category = category;\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -176
+      ],
+      "id": "fbe4d01e-108a-47bd-b410-1d49379c763d",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<DOCUMENT_ID>",
+          "mode": "list",
+          "cachedResultName": "<DOCUMENT_NAME>",
+          "cachedResultUrl": "<DOCUMENT_URL>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "HasAttachments",
+              "fieldValue": "={{ $json.HasAttachments }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.Date }}"
+            },
+            {
+              "fieldId": "From",
+              "fieldValue": "={{ $json.From }}"
+            },
+            {
+              "fieldId": "To",
+              "fieldValue": "={{ $json.To }}"
+            },
+            {
+              "fieldId": "Subject",
+              "fieldValue": "={{ $json.Subject }}"
+            },
+            {
+              "fieldId": "Snippet",
+              "fieldValue": "={{ $json.Snippet }}"
+            },
+            {
+              "fieldId": "MessageId",
+              "fieldValue": "={{ $json.MessageId }}"
+            },
+            {
+              "fieldId": "Category",
+              "fieldValue": "={{ $json.Category }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4684e5ab-5a40-4a32-bc15-bb75fffbeabb",
+      "name": "Appending",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        112,
+        -176
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Pick Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Appending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appending": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

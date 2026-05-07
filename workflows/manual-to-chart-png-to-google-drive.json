@@ -1,0 +1,279 @@
+{
+  "name": "Manual -> Chart PNG -> Google Drive",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c4f9115e-3c2d-48c7-b67a-db4e975cb302",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "sourceUrl",
+              "value": "https://dummyjson.com/products?limit=5"
+            },
+            {
+              "name": "dataPath",
+              "value": "products"
+            },
+            {
+              "name": "labelKey",
+              "value": "title"
+            },
+            {
+              "name": "valueKey",
+              "value": "price"
+            },
+            {
+              "name": "chartType",
+              "value": "bar"
+            },
+            {
+              "name": "chartTitle",
+              "value": "Top 5 Products – Prices"
+            },
+            {
+              "name": "datasetLabel",
+              "value": "Price (USD)"
+            },
+            {
+              "name": "backgroundColor",
+              "value": "transparent"
+            },
+            {
+              "name": "fileName",
+              "value": "<FILE_ID>"
+            },
+            {
+              "name": "driveFolderId"
+            }
+          ],
+          "number": [
+            {
+              "name": "width",
+              "value": 900
+            },
+            {
+              "name": "height",
+              "value": 500
+            },
+            {
+              "name": "limit",
+              "value": 50
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "557890a0-c721-4213-a54d-b5b5eed6e79f",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$node[\"Set Config\"].json[\"sourceUrl\"]}}",
+        "options": {}
+      },
+      "id": "3853f638-4b8b-4351-a0cd-a6a6db892955",
+      "name": "Fetch Stats (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "003c54ea-b682-4f62-a0c9-59b4cc5efb5a",
+      "name": "Merge (Config + HTTP)",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://quickchart.io/chart",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "c",
+              "value": "={{$json[\"chartConfig\"]}}"
+            },
+            {
+              "name": "format",
+              "value": "png"
+            },
+            {
+              "name": "width",
+              "value": "={{$json[\"width\"]}}"
+            },
+            {
+              "name": "height",
+              "value": "={{$json[\"height\"]}}"
+            },
+            {
+              "name": "backgroundColor",
+              "value": "={{$json[\"backgroundColor\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0374f80e-9afc-4d6c-be1a-86876f0d8e7a",
+      "name": "Render PNG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        112,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "binaryData": true,
+        "name": "={{ $('Code').item.json.fileName }}",
+        "options": {}
+      },
+      "id": "c73d0b84-ec95-4aa5-bbeb-bf93c12078a8",
+      "name": "Google Drive: Upload PNG",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        336,
+        208
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLEDRIVEOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      chartConfig: JSON.stringify({\n        type: \"bar\",\n        data: {\n          labels: [\n            \"Essence Mascara Lash Princess\",\n            \"Eyeshadow Palette with Mirror\",\n            \"Powder Canister\",\n            \"Red Lipstick\",\n            \"Red Nail Polish\"\n          ],\n          datasets: [\n            {\n              label: \"Price (USD)\",\n              data: [9.99, 19.99, 14.99, 12.99, 8.99],\n              backgroundColor: [\n                \"#FF6384\", // pink/red\n                \"#36A2EB\", // blue\n                \"#FFCE56\", // yellow\n                \"#4BC0C0\", // teal\n                \"#9966FF\"  // purple\n              ]\n            }\n          ]\n        },\n        options: {\n          responsive: false,\n          plugins: {\n            legend: { display: true },\n            title: {\n              display: true,\n              text: \"🌟 Top 5 Products – Prices 🌟\",\n              color: \"#d32f2f\",   // highlight color\n              font: {\n                size: 20,\n                weight: \"bold\"\n              },\n              padding: {\n                top: 20,\n                bottom: 20\n              }\n            }\n          },\n          scales: {\n            y: { beginAtZero: true }\n          }\n        }\n      }),\n      width: 900,\n      height: 500,\n      backgroundColor: \"white\",\n      fileName: \"top5-products.png\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        208
+      ],
+      "id": "e71bc271-f7d8-4870-b136-e31249d967a0",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stats (HTTP)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge (Config + HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stats (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Merge (Config + HTTP)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Render PNG": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Upload PNG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Upload PNG": {
+      "main": [
+        []
+      ]
+    },
+    "Merge (Config + HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Render PNG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

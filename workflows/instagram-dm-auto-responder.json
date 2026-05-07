@@ -1,0 +1,386 @@
+{
+  "name": "Instagram DM Auto-Responder",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram",
+        "options": {}
+      },
+      "id": "f239ef0b-6973-4db7-b461-1fedff057083",
+      "name": "Instagram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        304
+      ],
+      "webhookId": "<WEBHOOK_ID>"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "message-type-check",
+              "leftValue": "={{ $json.body.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2120869e-0ffe-4f4b-9bca-45d6c0f94c5c",
+      "name": "Filter Messages",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "product-inquiry",
+              "leftValue": "={{ $json.msg }}",
+              "rightValue": "price|cost|buy|purchase|order|available|stock",
+              "operator": {
+                "type": "string",
+                "operation": "regex",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ae360607-4fff-484a-b07c-8811b3d42985",
+      "name": "Check Product Inquiry",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "msg",
+              "stringValue": "={{ $json.body.message }}"
+            }
+          ]
+        },
+        "include": "selected",
+        "options": {}
+      },
+      "id": "b4a93100-04f3-4659-9d4c-650a70fa1d40",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -448,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api18.unipile.com:14881/api/v1/chats/{{ $('Filter Messages').item.json.body.chat_id }}/messages/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "qDeLezt0.qX3bHP23fq8QcR1t8hvVaOv8ECxBsgnpg3t+omWY10g="
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "24f41bf2-0b02-4625-8a61-0edcd73fb8a6",
+      "name": "Send Instagram Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI assistant for my iPhone shop.  \nYour job is to respond to Instagram DM messages from customers.  \n\n- If the message is a greeting (like \"hi\", \"hello\", \"good morning\"), reply politely and warmly.  \n- If the message is about iPhones (availability, price, models, storage options, colors, delivery, or payment), answer clearly and professionally.  \n- If the customer asks about something not related to iPhones, politely let them know you can only assist with iPhone-related inquiries.  \n- Always keep responses short, friendly, and helpful.  \n- If you don’t know the exact answer, ask the customer to contact our support team.  \n\nExample styles:  \n- Greeting: \"Hi 👋 Thanks for reaching out to our iPhone store! How can I help you today?\"  \n- Product inquiry: \"Yes, the iPhone 14 Pro is available. It comes in 128GB, 256GB, and 512GB options, and in Black, Silver, and Gold colors. Would you like me to share the price?\"  \n- Non-related inquiry: \"I’m here to help with iPhone-related questions only 📱. Could you please tell me which iPhone model you’re interested in?\"  \n{{ $json.msg }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        304
+      ],
+      "id": "d9c8bee9-7b22-4f16-ab7a-2fbaa6f297c2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        528
+      ],
+      "id": "c9fee1be-f04b-4d4a-8496-671a2bea55a9",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "greeting-check",
+              "leftValue": "={{ $json.msg }}",
+              "rightValue": "\\b(hello|hi|hey|salam|assalam|good morning|good evening|good night)\\b",
+              "operator": {
+                "type": "string",
+                "operation": "regex",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ad5f52ed-25f6-4a0b-8713-7bf7d5986117",
+      "name": "Check Greeting",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fc66edec-7312-415b-bebd-c9d2fca23730",
+              "leftValue": "={{ $json.msg }}",
+              "rightValue": "\\b(hello|hi|hey|salam|assalam|good morning|good evening|good night)\\b",
+              "operator": {
+                "type": "string",
+                "operation": "notRegex"
+              }
+            },
+            {
+              "id": "8ca1c21b-e3b0-4caf-b85b-5c61dddedf8a",
+              "leftValue": "={{ $json.msg }}",
+              "rightValue": " \\b(price|cost|available|availability|size|sizes|color|delivery|shipping|payment)\\b",
+              "operator": {
+                "type": "string",
+                "operation": "notRegex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        496
+      ],
+      "id": "65b66396-1213-488e-8553-7d58b5ab14f4",
+      "name": "Check Irrelevant"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Instagram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Messages": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Product Inquiry": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "Check Product Inquiry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Greeting",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Irrelevant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Instagram Message": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Instagram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Greeting": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Irrelevant": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

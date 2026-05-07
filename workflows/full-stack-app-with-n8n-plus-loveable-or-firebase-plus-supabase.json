@@ -1,0 +1,179 @@
+{
+  "name": "FULL STACK APP WITH N8N + LOVEABLE OR FIREBASE + SUPABASE",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "coach",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ccaf5772-ad2f-45d1-9bfd-e7fa1008a906",
+      "name": "Webhook",
+      "webhookId": "<WEBHOOK_ID>"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.query }}",
+        "options": {
+          "systemMessage": "You are a smart scheduling assistant. The user will send natural language requests to schedule, reschedule, or cancel meetings or classes.\n\nYour task is to:\n1. Understand the user's intent.\n2. Extract key scheduling details.\n3. Return a structured JSON object with the following fields:\n  - \"action\": schedule | reschedule | cancel\n  - \"title\": title or name of the meeting/class\n  - \"with\": person or group\n  - \"date\": if available, otherwise null\n  - \"start_time\": HH:MM 24-hour format\n  - \"end_time\": HH:MM 24-hour format\n  - \"duration_minutes\": number of minutes (optional if end_time is given)\n  - \"location\": online | in-person | or a specific platform (e.g. Zoom, Teams)\n\nIf the user input is ambiguous or lacks details, ask clarifying questions.\n\nOnly output the JSON object unless clarification is needed.\n\nExamples:\n\nUser: Schedule my class with Sir Haris from 10 PM to 11 PM  \nOutput:\n{\n  \"action\": \"schedule\",\n  \"title\": \"Class\",\n  \"with\": \"Sir Haris\",\n  \"date\": null,\n  \"start_time\": \"22:00\",\n  \"end_time\": \"23:00\",\n  \"duration_minutes\": 60,\n  \"location\": \"online\"\n}\n\nUser: Cancel the 3 PM meeting with Mr. Ali  \nOutput:\n{\n  \"action\": \"cancel\",\n  \"title\": \"Meeting\",\n  \"with\": \"Mr. Ali\",\n  \"date\": null,\n  \"start_time\": \"15:00\",\n  \"end_time\": null,\n  \"duration_minutes\": null,\n  \"location\": null\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        256,
+        0
+      ],
+      "id": "8c818a88-6a34-4d63-9365-9c0fd073d365",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        224
+      ],
+      "id": "37af0fc8-155e-4503-85d1-6dd180ef6e3b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        0
+      ],
+      "id": "fc8d265e-b2ad-4c6b-b82a-353ad5462cb3",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        480,
+        224
+      ],
+      "id": "d9b2b84a-21c9-476e-802d-c10b8047a9e4",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        224
+      ],
+      "id": "4f3e55d3-a0b4-41cc-9962-2bcc429c7128",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

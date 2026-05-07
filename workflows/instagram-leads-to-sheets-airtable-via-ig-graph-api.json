@@ -1,0 +1,224 @@
+{
+  "name": "Instagram Leads -> Sheets/Airtable (via IG Graph API)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "796488d5-fc26-488a-9930-ee3a6bdab4e6",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/uEEpvhuPhkOSdquRL/items?token=<SECRET>",
+        "options": {}
+      },
+      "id": "7e98c623-709d-4bf1-b10e-e305e9772cca",
+      "name": "HTTP → Get Dataset Items (GET)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -288,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Function node — Format IG data (sheet-ready)\n * Input: items[] (each = Apify dataset item / HTTP->Get Dataset Items)\n * Output columns: Username, FullName, Followers, Following, Posts, Bio, Website, Email, Phone, Verified, Private, Business, ProfileURL, Source\n */\n\n// helpers\nfunction firstNonEmpty(...vals) {\n  for (const v of vals) {\n    if (v !== undefined && v !== null && String(v).trim() !== \"\") {\n      return String(v).trim();\n    }\n  }\n  return \"\";\n}\nfunction normalizeUrl(u) {\n  if (!u) return \"\";\n  try {\n    const s = String(u).trim();\n    if (s.startsWith(\"http://\") || s.startsWith(\"https://\")) return s;\n    return \"https://\" + s.replace(/^\\/+/, \"\");\n  } catch {\n    return \"\";\n  }\n}\nfunction extractEmail(text) {\n  if (!text) return \"\";\n  const m = String(text).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);\n  return m ? m[0] : \"\";\n}\nfunction extractPhone(text) {\n  if (!text) return \"\";\n  const m = String(text).match(/(\\+?\\d[\\d\\s().-]{7,}\\d)/);\n  return m ? m[0].replace(/\\s+/g, \" \").trim() : \"\";\n}\n\nconst out = [];\nconst seen = new Set();\n\nfor (const item of items) {\n  const r = item.json || {};\n\n  // core identity\n  const username = firstNonEmpty(r.username, r.handle, r.user);\n  const fullName = firstNonEmpty(r.fullName, r.name, r.title);\n\n  if (!username) continue; // skip if no handle\n  if (seen.has(username)) continue; // de-dupe\n  seen.add(username);\n\n  // metrics\n  const followers =\n    Number(\n      r.followersCount ??\n      r.followers ??\n      r.edge_followed_by?.count ??\n      0\n    );\n  const following =\n    Number(\n      r.followingCount ??\n      r.followsCount ??\n      r.edge_follow?.count ??\n      0\n    );\n  const posts =\n    Number(\n      r.posts ??\n      r.mediaCount ??\n      r.edge_owner_to_timeline_media?.count ??\n      0\n    );\n\n  // text + links\n  const bio = firstNonEmpty(r.biography, r.bio, r.description);\n  // website/external url can live in several keys incl. arrays\n  const extArr = Array.isArray(r.externalUrls) ? r.externalUrls : [];\n  const extFromArr = extArr.length\n    ? firstNonEmpty(extArr[0].url, extArr[0].lynx_url, extArr[0].link, extArr[0].title)\n    : \"\";\n\n  const website = normalizeUrl(\n    firstNonEmpty(r.external_url, r.website, r.urlExternal, extFromArr)\n  );\n\n  // contact\n  const email = firstNonEmpty(\n    r.email,\n    (Array.isArray(r.emails) && r.emails[0]) || \"\",\n    extractEmail(bio),\n    extractEmail(website)\n  );\n  const phone = firstNonEmpty(r.phone, r.phone_number, extractPhone(bio));\n\n  // flags\n  const verified = Boolean(r.isVerified ?? r.is_verified ?? false);\n  const isPrivate = Boolean(r.isPrivate ?? r.is_private ?? false);\n  const isBusiness = Boolean(r.isBusinessAccount ?? r.is_business_account ?? false);\n\n  // urls\n  const profileURL = normalizeUrl(\n    firstNonEmpty(\n      r.profileUrl,\n      r.url,\n      `https://www.instagram.com/${username}`\n    )\n  );\n  const source = firstNonEmpty(r.inputUrl, r.source, profileURL);\n\n  out.push({\n    json: {\n      Username: username,\n      FullName: fullName,\n      Followers: followers,\n      Following: following,\n      Posts: posts,\n      Bio: bio,\n      Website: website,\n      Email: email,\n      Phone: phone,\n      Verified: verified,\n      Private: isPrivate,\n      Business: isBusiness,\n      ProfileURL: profileURL,\n      Source: source\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -128
+      ],
+      "id": "89b416a7-964a-48bd-af28-ceb4288ee3c2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<DOCUMENT_ID>",
+          "mode": "list",
+          "cachedResultName": "<DOCUMENT_NAME>",
+          "cachedResultUrl": "<DOCUMENT_URL>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Username": "={{ $json.Username }}",
+            "FullName": "={{ $json.FullName }}",
+            "Followers": "={{ $json.Followers }}",
+            "Bio": "={{ $json.Bio }}",
+            "Website": "={{ $json.Website }}",
+            "Email": "<EMAIL_ADDRESS>",
+            "Phone": "={{ $json.Phone }}",
+            "Business": "={{ $json.Business }}",
+            "ProfileURL": "<FILE_ID>"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FullName",
+              "displayName": "FullName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Followers",
+              "displayName": "Followers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bio",
+              "displayName": "Bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Business",
+              "displayName": "Business",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ProfileURL",
+              "displayName": "ProfileURL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        -128
+      ],
+      "id": "fb4117b9-182a-46e6-8a21-ba5cd840586f",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "HTTP → Get Dataset Items (GET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP → Get Dataset Items (GET)": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

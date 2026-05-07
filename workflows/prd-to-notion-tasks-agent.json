@@ -1,0 +1,214 @@
+{
+  "name": "PRD to Notion Tasks Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b8d10356-fe1c-4ea3-9340-0d6a47b998ef",
+      "name": "PRD Input",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "prd_content",
+              "stringValue": "# Project Requirements Document: TaskFlow Mobile App  ## 1. Project Overview  **Project Name**: TaskFlow - Personal Task Management Mobile Application   **Project Duration**: 12 weeks   **Team Size**: 5 developers (2 mobile, 1 backend, 1 designer, 1 QA)   **Budget**: $150,000    ### 1.1 Problem Statement Users struggle to manage their daily tasks efficiently across different platforms. Current solutions are either too complex for casual users or lack essential features for power users. There's a need for an intuitive, cross-platform task management app that balances simplicity with powerful organizational features.  ### 1.2 Project Goals - Create an intuitive mobile-first task management application - Achieve 10,000+ downloads within 3 months of launch - Maintain 4.0+ app store rating - Support both iOS and Android platforms - Implement real-time synchronization across devices  ## 2. Target Audience  **Primary Users**: Working professionals aged 25-45 who need to manage personal and work tasks   **Secondary Users**: Students and freelancers looking for project organization tools    ### 2.1 User Personas - **Sarah (Marketing Manager)**: Needs to track multiple projects, set reminders, and collaborate with team members - **Alex (College Student)**: Requires simple task tracking for assignments, deadlines, and personal goals - **Mike (Freelancer)**: Wants project-based task organization with time tracking capabilities  ## 3. Core Features  ### 3.1 Task Management - Create, edit, and delete tasks - Set due dates and reminders - Add task descriptions and notes - Attach files and images to tasks - Mark tasks as complete/incomplete - Task priority levels (High, Medium, Low)  ### 3.2 Organization Features - Create custom categories/projects - Color-coded task organization - Tags and labels system - Search and filter functionality - Sort tasks by various criteria (date, priority, category)  ### 3.3 User Interface - Clean, minimalist design following Material Design (Android) and Human Interface Guidelines (iOS) - Dark and light theme options - Intuitive navigation with bottom tab bar - Swipe gestures for quick actions - Pull-to-refresh functionality  ### 3.4 Synchronization & Backup - Real-time sync across multiple devices - Cloud backup integration (Google Drive, iCloud) - Offline mode with sync when online - Data export functionality (CSV, JSON)  ### 3.5 Notifications & Reminders - Push notifications for due tasks - Custom reminder settings - Daily/weekly summary notifications - Smart notification scheduling  ## 4. Technical Requirements  ### 4.1 Platform Requirements - **Mobile Platforms**: iOS 14+ and Android 8.0+ - **Framework**: React Native for cross-platform development - **Backend**: Node.js with Express framework - **Database**: MongoDB with Redis for caching - **Authentication**: Firebase Authentication  ### 4.2 Performance Requirements - App launch time: < 3 seconds - Task creation/editing: < 1 second response time - Sync operations: Complete within 5 seconds - Support for up to 10,000 tasks per user - 99.9% uptime for backend services  ### 4.3 Security Requirements - End-to-end encryption for user data - Secure API endpoints with rate limiting - GDPR compliance for data protection - Secure authentication with 2FA option - Regular security audits and penetration testing  ## 5. User Stories  ### 5.1 Core User Stories 1. As a user, I want to quickly create a task so that I can capture ideas immediately 2. As a user, I want to set due dates and reminders so that I don't miss important deadlines 3. As a user, I want to organize tasks into categories so that I can focus on specific areas of my life 4. As a user, I want to search through my tasks so that I can quickly find what I'm looking for 5. As a user, I want my tasks to sync across devices so that I can access them anywhere  ### 5.2 Advanced User Stories 1. As a power user, I want to create recurring tasks so that I can automate routine activities 2. As a team member, I want to share task lists so that I can collaborate with others 3. As a data-conscious user, I want to export my tasks so that I have control over my data 4. As a mobile user, I want to work offline so that I'm not dependent on internet connectivity  ## 6. Success Metrics  ### 6.1 User Engagement - Daily Active Users (DAU): Target 60% of total users - Session Duration: Average 5+ minutes per session - Task Completion Rate: 70%+ of created tasks marked as complete - User Retention: 40% after 30 days, 20% after 90 days  ### 6.2 Technical Metrics - App Crash Rate: < 0.1% - API Response Time: Average < 200ms - App Store Rating: Maintain 4.0+ stars - Customer Support Tickets: < 5% of active users per month  ## 7. Timeline & Milestones  ### Phase 1: Foundation (Weeks 1-4) - Project setup and environment configuration - Basic app architecture and navigation - User authentication implementation - Core task CRUD operations  ### Phase 2: Core Features (Weeks 5-8) - Task organization and categorization - Search and filtering functionality - Notification system implementation - UI/UX polish and testing  ### Phase 3: Advanced Features (Weeks 9-11) - Real-time synchronization - Offline mode implementation - Data export/import features - Performance optimization  ### Phase 4: Launch Preparation (Week 12) - Final testing and bug fixes - App store submission - Marketing material preparation - Production deployment  ## 8. Constraints & Assumptions  ### 8.1 Technical Constraints - Must work on devices with 2GB+ RAM - App size should not exceed 50MB - Limited to 1000 API calls per user per day - Must comply with app store guidelines  ### 8.2 Business Constraints - Budget limitation of $150,000 - 12-week development timeline - Team availability and skill sets - Marketing budget of $25,000 for launch  ### 8.3 Assumptions - Users have stable internet connection for sync features - Target audience is comfortable with mobile app interfaces - App stores will approve the application without major changes - No major competitor launches during development period  ## 9. Risks & Mitigation  ### 9.1 Technical Risks - **Risk**: React Native compatibility issues   - **Mitigation**: Early prototyping and platform-specific testing - **Risk**: Sync conflicts with concurrent edits   - **Mitigation**: Implement operational transformation or conflict resolution UI  ### 9.2 Business Risks - **Risk**: Low user adoption   - **Mitigation**: Beta testing with target users and iterative feedback incorporation - **Risk**: Timeline delays   - **Mitigation**: Agile development with weekly sprints and buffer time  ## 10. Acceptance Criteria  - All core features implemented and tested - App passes review process for both iOS and Android stores - Performance benchmarks met (load times, response times) - Security audit completed with no critical vulnerabilities - User acceptance testing completed with 80%+ satisfaction rate - Documentation completed for maintenance and future development"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4e5ee54-5174-4c54-bc6e-27b270a02d0c",
+      "name": "Extract PRD Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response to extract tasks\nconst aiResponse = items[0].json.message.content;\n\ntry {\n  // Extract JSON from the AI response (in case it's wrapped in markdown)\n  const jsonMatch = aiResponse.match(/\\[\\s*{[\\s\\S]*}\\s*\\]/);\n  const tasksJson = jsonMatch ? jsonMatch[0] : aiResponse;\n  \n  const tasks = JSON.parse(tasksJson);\n  \n  // Process each task and prepare for Notion\n  const processedTasks = tasks.map((task, index) => {\n    return {\n      task_id: `TASK-${String(index + 1).padStart(3, '0')}`,\n      title: task.title,\n      description: task.description,\n      priority: task.priority,\n      effort: task.effort,\n      category: task.category,\n      dependencies: Array.isArray(task.dependencies) ? task.dependencies.join(', ') : '',\n      acceptance_criteria: Array.isArray(task.acceptance_criteria) ? task.acceptance_criteria.join('\\n• ') : '',\n      status: 'Not Started',\n      created_date: new Date().toISOString().split('T')[0]\n    };\n  });\n  \n  return processedTasks.map(task => ({ json: task }));\n  \n} catch (error) {\n  throw new Error(`Failed to parse AI response: ${error.message}`);\n}"
+      },
+      "id": "774ba26d-e949-4f2c-91d9-b0c8e21d6c1e",
+      "name": "Process Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "<DATABASE_ID>",
+          "mode": "list",
+          "cachedResultName": "<DATABASE_NAME>",
+          "cachedResultUrl": "<DATABASE_URL>"
+        },
+        "title": "={{ $json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Task ID|rich_text",
+              "textContent": "={{ $json.task_id }}"
+            },
+            {
+              "key": "Description|rich_text",
+              "textContent": "={{ $json.description }}"
+            },
+            {
+              "key": "Priority|select",
+              "selectValue": "={{ $json.priority }}"
+            },
+            {
+              "key": "Effort|number",
+              "numberValue": "={{ $json.effort }}"
+            },
+            {
+              "key": "Dependencies|rich_text",
+              "textContent": "={{ $json.dependencies }}"
+            },
+            {
+              "key": "Category|select",
+              "selectValue": "={{ $json.category }}"
+            },
+            {
+              "key": "Acceptance Criteria|rich_text",
+              "textContent": "={{ $json.acceptance_criteria }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "={{ $json.status }}"
+            },
+            {
+              "key": "Created Date|date",
+              "date": "={{ $json.created_date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "098ebff4-14c7-40ef-aeca-f6312e556566",
+      "name": "Create Notion Tasks",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -112
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "<NOTIONAPI_CREDENTIAL_ID>",
+          "name": "<NOTIONAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "# ChatGPT System Prompt for PRD Task Breakdown\n\n## System Message:\nYou are an expert project manager and product analyst with 10+ years of experience in breaking down complex Project Requirements Documents (PRDs) into actionable development tasks. Your specialty is creating well-structured, implementable task breakdowns that development teams can immediately work with.\n\n## Your Task:\nAnalyze the given PRD thoroughly and break it down into specific, actionable tasks. Each task should be development-ready and clearly defined.\n\n## Response Format:\nReturn your response ONLY as a valid JSON array. Do not include any explanation, markdown formatting, or additional text. The JSON should follow this exact structure:\n\n```json\n[\n  {\n    \"title\": \"Clear, concise task title (max 60 characters)\",\n    \"description\": \"Detailed description including technical requirements, user stories, and implementation notes. Be specific about what needs to be built, how it should function, and any technical constraints.\",\n    \"priority\": \"High|Medium|Low\",\n    \"effort\": 1-8,\n    \"category\": \"Frontend|Backend|Design|DevOps|Testing|Documentation|Research|Integration\",\n    \"dependencies\": [\"List of task titles this depends on, or empty array if none\"],\n    \"acceptance_criteria\": [\n      \"Specific, measurable criterion 1\",\n      \"Specific, measurable criterion 2\",\n      \"Specific, measurable criterion 3\"\n    ]\n  }\n]\n```\n\n## Task Creation Guidelines:\n\n### Priority Assignment:\n- **High**: Critical path items, core functionality, security features, user authentication\n- **Medium**: Important features, UI/UX improvements, performance optimizations\n- **Low**: Nice-to-have features, minor enhancements, documentation updates\n\n### Effort Estimation (Story Points):\n- **1-2**: Simple tasks (config changes, minor UI updates, simple API endpoints)\n- **3-5**: Medium tasks (feature implementation, complex UI components, database schema)\n- **6-8**: Large tasks (major feature sets, complex integrations, architectural changes)\n\n### Category Definitions:\n- **Frontend**: UI/UX, mobile app screens, web interfaces, client-side logic\n- **Backend**: APIs, databases, server logic, data processing, authentication\n- **Design**: UI/UX design, mockups, style guides, user research\n- **DevOps**: Deployment, CI/CD, infrastructure, monitoring, security setup\n- **Testing**: Test planning, automated tests, QA processes, performance testing\n- **Documentation**: Technical docs, user manuals, API documentation\n- **Research**: Technical research, proof of concepts, feasibility studies\n- **Integration**: Third-party integrations, API connections, external services\n\n### Task Breakdown Rules:\n1. **Atomic Tasks**: Each task should be completable by one person in 1-3 days\n2. **Clear Scope**: Avoid vague terms like \"implement feature X\" - be specific\n3. **Testable**: Each task should have clear, measurable acceptance criteria\n4. **Dependencies**: Identify prerequisite tasks clearly\n5. **Technical Depth**: Include technical implementation details where relevant\n6. **User-Centric**: Reference user stories and business requirements\n\n### Acceptance Criteria Guidelines:\n- Start with action verbs (User can..., System should..., API returns...)\n- Include edge cases and error handling\n- Specify performance requirements where applicable\n- Mention testing requirements\n- Include accessibility requirements if relevant\n\n## Example Quality Tasks:\n\n### Good Task Example:\n```json\n{\n  \"title\": \"Implement User Registration API Endpoint\",\n  \"description\": \"Create RESTful API endpoint for user registration with email validation, password hashing using bcrypt, and JWT token generation. Include input validation for email format, password strength, and duplicate user checking. Implement rate limiting to prevent abuse.\",\n  \"priority\": \"High\",\n  \"effort\": 5,\n  \"category\": \"Backend\",\n  \"dependencies\": [\"Database Schema Design\", \"Authentication Middleware Setup\"],\n  \"acceptance_criteria\": [\n    \"API accepts POST requests to /api/auth/register with email and password\",\n    \"Email validation returns appropriate error for invalid formats\",\n    \"Password is hashed using bcrypt with salt rounds ≥ 12\",\n    \"JWT token returned on successful registration with 24h expiration\",\n    \"Duplicate email registration returns 409 conflict error\",\n    \"Rate limiting allows max 5 registration attempts per IP per minute\",\n    \"All inputs sanitized to prevent SQL injection\",\n    \"Unit tests achieve 90%+ code coverage\"\n  ]\n}\n```\n\n### Bad Task Example (Avoid):\n```json\n{\n  \"title\": \"Build user system\",\n  \"description\": \"Make users work\",\n  \"priority\": \"High\",\n  \"effort\": 5,\n  \"category\": \"Backend\",\n  \"dependencies\": [],\n  \"acceptance_criteria\": [\"Users can register\", \"Login works\"]\n}\n```\n\n## Analysis Instructions:\n1. **Read the entire PRD carefully** - understand the project scope, timeline, and constraints\n2. **Identify all features and requirements** - both functional and non-functional\n3. **Consider technical architecture** - break down into logical technical components\n4. **Account for project phases** - align tasks with provided timeline/milestones\n5. **Include supporting tasks** - don't forget setup, testing, documentation, deployment\n6. **Maintain consistency** - ensure task priorities align with project goals\n7. **Consider team structure** - create tasks appropriate for mentioned team roles\n\nRemember: Your output will be directly fed into a project management system. Accuracy and completeness are critical.",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -16,
+        -112
+      ],
+      "id": "7123011f-09e6-4f05-b5ad-7397365dc669",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "PRD Input": {
+      "main": [
+        [
+          {
+            "node": "Extract PRD Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PRD Content": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Tasks": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Tasks": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Process Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

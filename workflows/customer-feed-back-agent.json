@@ -1,0 +1,651 @@
+{
+  "name": "Customer FeedBack Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Customer FeedBack",
+        "formDescription": "Please Provide Your FeedBack Here.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "placeholder": "Please type your name here...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "Please type your email here...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "FeedBack",
+              "placeholder": "Provide feedback as long as you want here...",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        -48
+      ],
+      "id": "2a4e8553-d426-4d4b-ab8f-026e015ea84d",
+      "name": "On form submission",
+      "webhookId": "<WEBHOOK_ID>"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Vour role is to determine it a customer feedback is a feature Request, a Compliment, or a Complaint.\nHere is the customer feedback: {{ $json.FeedBack }}\nPlease make sure your output is one word from three catogaries mentioned above:Feature Request, a Compliment, or a Complaint",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -96,
+        80
+      ],
+      "id": "7e8bf1f3-b29a-41d9-9560-03bd6ef68354",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -96,
+        304
+      ],
+      "id": "95ae0f33-f00a-4d6d-9904-6a6fff6ca8b1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        48,
+        304
+      ],
+      "id": "2adb253e-30e1-45c8-86f3-5d6814c02838",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        -48
+      ],
+      "id": "4b1a2b91-4322-4963-a1b2-ea635a60d0bc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "Compliment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3944b952-651c-4e5f-ac68-b1b26469b6c7"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Compliment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fd80dbb0-3810-4dd3-a4f0-7d909ad1261f",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "Complaint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Complaint"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "308bccad-e5a0-48cf-a3bd-ce5b438ebd39",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "Feature Request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Feature Request"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        -64
+      ],
+      "id": "58011253-9aa7-4683-824c-e78ffeecc415",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appeEHAR8rnKVh2MV",
+          "mode": "list",
+          "cachedResultName": "Customer FeedBack",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0VLNpyapqocXra",
+          "mode": "list",
+          "cachedResultName": "Complaint",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.Name }}",
+            "FeedBack": "={{ $json.FeedBack }}",
+            "Email": "<EMAIL_ADDRESS>"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "FeedBack",
+              "displayName": "FeedBack",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        -48
+      ],
+      "id": "3d8609ae-cca0-48ee-a978-bc855558532a",
+      "name": "Complaint",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "<AIRTABLETOKENAPI_CREDENTIAL_ID>",
+          "name": "<AIRTABLETOKENAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appeEHAR8rnKVh2MV",
+          "mode": "list",
+          "cachedResultName": "Customer FeedBack",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbllbWmlU6m7kZUIZ",
+          "mode": "list",
+          "cachedResultName": "Feature Request",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.Name }}",
+            "FeedBack": "={{ $json.FeedBack }}",
+            "Email": "<EMAIL_ADDRESS>"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "FeedBack",
+              "displayName": "FeedBack",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        144
+      ],
+      "id": "da7985cd-702e-48ad-9481-3959e636f1a5",
+      "name": "Feedback request",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "<AIRTABLETOKENAPI_CREDENTIAL_ID>",
+          "name": "<AIRTABLETOKENAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appeEHAR8rnKVh2MV",
+          "mode": "list",
+          "cachedResultName": "Customer FeedBack",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblvktwXhYPqK3gIT",
+          "mode": "list",
+          "cachedResultName": "Compliment",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.Name }}",
+            "FeedBack": "={{ $json.FeedBack }}",
+            "Email": "<EMAIL_ADDRESS>"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "FeedBack",
+              "displayName": "FeedBack",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        -240
+      ],
+      "id": "0c1f4d00-a9a5-4222-b0ca-5384eb2e5e76",
+      "name": "Compliment",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "<AIRTABLETOKENAPI_CREDENTIAL_ID>",
+          "name": "<AIRTABLETOKENAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "<CHANNEL_NAME>"
+        },
+        "text": "={{ $json.fields.FeedBack }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        -240
+      ],
+      "id": "8e7a2d7b-ae09-4592-86b0-5a52595217f6",
+      "name": "Send a message",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "<SLACKOAUTH2API_CREDENTIAL_ID>",
+          "name": "<SLACKOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "<CHANNEL_NAME>"
+        },
+        "text": "={{ $json.fields.FeedBack }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        144
+      ],
+      "id": "104e30be-b5a9-4228-aae9-52338f55cf35",
+      "name": "Send a message1",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "<SLACKOAUTH2API_CREDENTIAL_ID>",
+          "name": "<SLACKOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "<EMAIL_ADDRESS>",
+        "subject": "={{ $('AI Agent').item.json.output }}",
+        "message": "={{ $json.fields.FeedBack }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        -48
+      ],
+      "id": "f1207355-87ab-42e1-b969-60713545bcfa",
+      "name": "Send a message2",
+      "webhookId": "<WEBHOOK_ID>",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<GMAILOAUTH2_CREDENTIAL_ID>",
+          "name": "<GMAILOAUTH2_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Compliment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complaint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Feedback request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliment": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback request": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complaint": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

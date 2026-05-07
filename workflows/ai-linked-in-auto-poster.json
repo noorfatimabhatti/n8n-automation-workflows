@@ -1,0 +1,276 @@
+{
+  "name": "AI LinkedIn AutoPoster",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "engine",
+              "value": "google_trends_trending_now"
+            },
+            {
+              "name": "geo",
+              "value": "US"
+            },
+            {
+              "name": "hours",
+              "value": "24"
+            },
+            {
+              "name": "only_active",
+              "value": "true"
+            },
+            {
+              "name": "api_key",
+              "value": "<API_KEY>"
+            }
+          ]
+        }
+      },
+      "id": "50f725d7-0ae4-421e-a2f4-2704e23b8fe7",
+      "name": "Get Trending Topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "topic",
+              "value": "={{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b86d2a52-b64c-4d48-bcc5-0568f65c89e4",
+      "name": "Extract Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "={{ $('Message a model').item.json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2e82679d-5c66-4cd3-b83c-cfe3311b8889",
+      "name": "Prepare LinkedIn Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -192
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -192
+      ],
+      "id": "525407a5-b30c-4c19-891b-985ea73bfc86",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a LinkedIn-ready post about {{$json[\"topic\"]}}.\n\nREQUIREMENTS:\n1) Use Unicode bold characters (𝗹𝗶𝗸𝗲 𝘁𝗵𝗶𝘀) instead of Markdown (*bold*).\n2) No asterisks, no markdown, no quotation marks, and no code blocks in the output.\n3) Structure:\n   - 𝗛𝗲𝗮𝗱𝗹𝗶𝗻𝗲 in Unicode bold + one relevant emoji.\n   - Blank line.\n   - 2–3 sentence engaging introduction giving context.\n   - Blank line.\n   - 📈 𝗦𝗵𝗼𝗿𝘁 𝗦𝘂𝗯𝗵𝗲𝗮𝗱 𝟭 (Unicode bold) — one-sentence summary + 1–2 short explanatory sentences.\n   - Blank line.\n   - 🌍 𝗦𝗵𝗼𝗿𝘁 𝗦𝘂𝗯𝗵𝗲𝗮𝗱 𝟮 (Unicode bold) — one-sentence summary + 1–2 short explanatory sentences.\n   - Blank line.\n   - 🧠 𝗦𝗵𝗼𝗿𝘁 𝗦𝘂𝗯𝗵𝗲𝗮𝗱 𝟯 (Unicode bold) — one-sentence summary + 1–2 short explanatory sentences.\n   - Blank line.\n   - 1–2 sentence closing with a call-to-action or question.\n   - Blank line.\n   - 6–8 relevant hashtags in TitleCase, separated by spaces (e.g., #StockMarket #Investing #Innovation).\n\nSTYLE:\n- Professional yet conversational tone.\n- Short, skimmable paragraphs.\n- Keep the total length under 1,400 characters.\n- Make it visually easy to read in LinkedIn’s feed."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        832,
+        -192
+      ],
+      "id": "ad2c3d15-81b4-4455-a814-605f0d2aa266",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "RlBmu00wjq",
+        "text": "={{ $('Message a model').item.json.message.content }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        -192
+      ],
+      "id": "022519c4-12ed-4e6b-a6a5-632a954d09ca",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "<LINKEDINOAUTH2API_CREDENTIAL_ID>",
+          "name": "<LINKEDINOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const list = Array.isArray($json.trending_searches) ? $json.trending_searches : [];\nlist.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));\nconst top = list[0];\n\nreturn [{\n  topic: top?.query\n    || (Array.isArray($json.trend_breakdown) && $json.trend_breakdown[0])\n    || ''\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        -192
+      ],
+      "id": "c2816c7a-bad4-4512-8820-ecf8b42821c4",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "=Create a professional, visually dynamic LinkedIn-style image representing the following topic: {{ $json.message.content }}. \n\nDesign it as a high-impact, 3D-style digital illustration showing growth and innovation in the relevant industry. Include upward-trending stock market graphs, relevant industry symbols, and elements representing technology and partnerships. Use a clean, corporate aesthetic with vibrant blue and green tones, subtle lighting effects, and a composition that draws attention in a social media feed.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1184,
+        -192
+      ],
+      "id": "146c9c5d-c863-443f-9201-0c88a825475c",
+      "name": "Generate an image",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Trending Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Topic": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trending Topic": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Extract Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Prepare LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}

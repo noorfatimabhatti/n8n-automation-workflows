@@ -1,0 +1,493 @@
+{
+  "name": "YouTube Top 10 Insights -> Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<DOCUMENT_ID>",
+          "mode": "list",
+          "cachedResultName": "<DOCUMENT_NAME>",
+          "cachedResultUrl": "<DOCUMENT_URL>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "<CACHED_RESULT_URL>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ChannelId": "<CHANNEL_ID>",
+            "VideoId": "={{ $json.VideoId }}",
+            "Title": "={{ $json.Title }}",
+            "URL": "={{ $json.URL }}",
+            "Views": "={{ $json.Views }}",
+            "Transcript": "={{ $json.Transcript }}",
+            "KeyConcepts": "={{ $json.KeyConcepts }}",
+            "RecurringThemes": "={{ $json.RecurringThemes }}",
+            "UniqueAngles": "={{ $json.UniqueAngles }}",
+            "Summary": "={{ $json.Summary }}",
+            "AppendedAt": "={{ $json.AppendedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ChannelId",
+              "displayName": "ChannelId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VideoId",
+              "displayName": "VideoId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Views",
+              "displayName": "Views",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "KeyConcepts",
+              "displayName": "KeyConcepts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RecurringThemes",
+              "displayName": "RecurringThemes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UniqueAngles",
+              "displayName": "UniqueAngles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AppendedAt",
+              "displayName": "AppendedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "874cc6d2-71ee-434c-88da-d9fb76d0e84f",
+      "name": "Google Sheets: Append",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        512,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_ID>",
+          "name": "<GOOGLESHEETSOAUTH2API_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a content research assistant.\n\nFrom the YouTube video context below, extract and return STRICT JSON with EXACT keys:\n- key_concepts: 5–12 crisp bullet points (short phrases)\n- recurring_themes: 3–8 items summarizing repeated motifs/topics\n- unique_angles: 3–8 concrete hooks, contrarian takes, or unusual framings\n- one_sentence_summary: 1 sentence (<= 35 words) capturing the core idea\n\nRules:\n- Output MUST be valid JSON object only (no markdown, no extra text).\n- Keep bullet points concise (~12 words max).\n- If transcript is missing/short, rely on title and URL.\n\nContext:\nTitle: {{ $json.Title }}\nURL: {{ $json.URL }}\nTranscript: {{ $json._transcript_for_llm || \"\" }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -496,
+        -112
+      ],
+      "id": "5b3e0e76-9153-4366-8bee-587c46c48736",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAIAPI_CREDENTIAL_ID>",
+          "name": "<OPENAIAPI_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "9bd6b892-8c2b-405e-9dfa-a3cc7de93cf7",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.apify.com/v2/datasets/riiQ2nUq3RZBDetwa/items?token=<SECRET>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1808,
+        -32
+      ],
+      "id": "a45c145b-72ff-42d3-9d8b-715e50954248",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Run Once for All Items\nfunction parseViews(v) {\n  if (v == null) return 0;\n  if (typeof v === 'number') return v;\n  const s = String(v).trim().toUpperCase();       // e.g., \"1.2M\", \"345K\", \"2,345\"\n  const m = s.match(/^([\\d,.]+)\\s*([KMB])?/);\n  if (!m) return 0;\n  const num = parseFloat(m[1].replace(/,/g, ''));\n  const suf = m[2] || '';\n  const mult = suf === 'B' ? 1e9 : suf === 'M' ? 1e6 : suf === 'K' ? 1e3 : 1;\n  return Math.round(num * mult);\n}\n\nconst videos = items.map(i => {\n  const j = i.json || {};\n  const videoId = j.videoId || j.videoID || j.id || '';\n  return {\n    videoId,\n    title: j.title || '',\n    url: j.url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : ''),\n    views: parseViews(j.viewCount || j.views),\n    channelId: j.channelId || j.channelID || '',\n    channelName: j.channelName || '',\n    publishedAt: j.datePublished || j.publishedAt || '',\n    thumbnail: j.thumbnailUrl || ''\n  };\n});\n\nvideos.sort((a,b) => b.views - a.views);\nconst top10 = videos.slice(0, 10);\nreturn top10.map(v => ({ json: v }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1584,
+        -32
+      ],
+      "id": "72fcbda5-d23c-46a3-9c35-db1791819e92",
+      "name": "Code (Top 10)"
+    },
+    {
+      "parameters": {
+        "url": "=https://youtube-transcriptor.p.rapidapi.com/transcript",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "video_id",
+              "value": "={{ $json.videoId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": " 150bce78e6msh0a8db1a2fb0fa4ap133558jsn0942446f2208"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "youtube-transcriptor.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "27558391-b25a-4f7d-8308-eb3fbffbe3d8",
+      "name": "Transcript (HTTP)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1136,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1360,
+        -32
+      ],
+      "id": "ed2a3120-ee17-41f2-b679-247b15cac9d8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json || {};\nlet text = '';\n\n// transcript pick from any possible field (from HTTP)\nif (Array.isArray(j.segments)) {\n  text = j.segments.map(s => s.text || s.caption || '').join(' ');\n} else if (typeof j.transcriptionAsText === 'string') {\n  text = j.transcriptionAsText;\n} else if (typeof j.text === 'string') {\n  text = j.text;\n} else if (typeof j.transcript === 'string') {\n  text = j.transcript;\n}\n\n// cleanup + trim\ntext = String(text || '')\n  .replace(/\\s+/g, ' ')\n  .replace(/\\[?\\d{1,2}:\\d{2}(?::\\d{2})?\\]?:?/g, '')\n  .trim();\n\nconst MAX_FOR_LLM = 6000;\nconst transcript_for_llm = text.slice(0, MAX_FOR_LLM);\n\n// meta (aab $json me hi present hoga kyunki M1 ne merge kar diya)\nconst VideoId   = j.VideoId   ?? j.videoId   ?? '';\nconst ChannelId = j.ChannelId ?? j.channelId ?? '';\nconst Title     = j.Title     ?? j.title     ?? '';\nconst Views     = j.Views     ?? j.views     ?? 0;\nconst URL       = j.URL ?? j.url ?? (VideoId ? `https://www.youtube.com/watch?v=${VideoId}` : '');\n\nreturn [{\n  json: {\n    ChannelId,\n    VideoId,\n    Title,\n    URL,\n    Views,\n    Transcript: text,                 // full\n    _transcript_for_llm: transcript_for_llm\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        -112
+      ],
+      "id": "924525e7-4f4b-4b6f-8193-38527e81ff10",
+      "name": "Code (Normalize Transcript)"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeParse(s){ try { return JSON.parse(String(s||'').trim()); } catch { return {}; } }\n\n// get LLM text from common shapes\nlet content = '';\nif ($json.message && typeof $json.message.content === 'string') content = $json.message.content;\nelse if ($json.text) content = $json.text;\nelse if ($json.data && $json.data[0] && $json.data[0].content) content = $json.data[0].content;\nelse if ($json.choices && $json.choices[0]) content = $json.choices[0].message?.content || $json.choices[0].text || '';\nelse if ($json.result) content = $json.result;\n\nconst llm = safeParse(content);\n\nconst key_concepts     = Array.isArray(llm.key_concepts) ? llm.key_concepts : [];\nconst recurring_themes = Array.isArray(llm.recurring_themes) ? llm.recurring_themes : [];\nconst unique_angles    = Array.isArray(llm.unique_angles) ? llm.unique_angles : [];\nconst summary          = typeof llm.one_sentence_summary === 'string' ? llm.one_sentence_summary : '';\n\nreturn [{\n  json: {\n    ChannelId:  $json.ChannelId || $json.channelId || '',\n    VideoId:    $json.VideoId   || $json.videoId   || '',\n    Title:      $json.Title     || $json.title     || '',\n    URL:        $json.URL       || $json.url       || '',\n    Views:      $json.Views     ??  $json.views    ?? 0,\n    Transcript: $json.Transcript || $json.transcript || '',\n\n    KeyConcepts:     key_concepts.join(' | '),\n    RecurringThemes: recurring_themes.join(' | '),\n    UniqueAngles:    unique_angles.join(' | '),\n    Summary:         summary,\n\n    AppendedAt: new Date().toISOString()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "44a0d751-1509-4492-82f8-b112d9d694d5",
+      "name": "Code (Parse + Merge for Sheets)"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -928,
+        -112
+      ],
+      "id": "4b7c5b84-ed8a-427d-a17d-40b82e7c0062",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -144,
+        -112
+      ],
+      "id": "364644b2-6fe8-4231-9b7d-447977d18998",
+      "name": "Merge1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code (Top 10)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Top 10)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcript (HTTP)1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Transcript (HTTP)1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Append": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Normalize Transcript)": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Parse + Merge for Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code (Normalize Transcript)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code (Parse + Merge for Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "<WORKFLOW_VERSION_ID>",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": []
+}
